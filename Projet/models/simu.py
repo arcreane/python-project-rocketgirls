@@ -1,7 +1,7 @@
 import random
 import math
 from typing import List, Optional
-from .avions import Avion, Position, EtatAvion
+from Projet.interface.avions import Avion, Position, EtatAvion
 
 
 class Simulation:
@@ -22,7 +22,7 @@ class Simulation:
         """Démarre la simulation"""
         self.simulation_en_cours = True
         self.temps_debut = self.temps_ecoule
-        print("A vous de jouer !")
+        print("Simulation démarrée!")
 
     def arreter_simulation(self):
         """Arrête la simulation"""
@@ -150,5 +150,3 @@ class Simulation:
         if self.avion_selectionne:
             self.avion_selectionne.resoudre_urgence()
             self.score += 50
-
-
