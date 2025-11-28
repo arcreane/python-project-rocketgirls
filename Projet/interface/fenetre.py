@@ -17,6 +17,8 @@ class FenetrePrincipale(QMainWindow):
         self.timer_simulation.timeout.connect(self.mettre_a_jour_simulation)
         self.timer_simulation.start(100)
 
+        self.avion_selectionne_precedent = None
+
         self.init_ui()
 
     def init_ui(self):
@@ -103,6 +105,7 @@ class FenetrePrincipale(QMainWindow):
         stats_group = QGroupBox("STATISTIQUES")
         stats_layout = QVBoxLayout()
 
+        self.label_temps = QLabel("Temps: 00:00")  # ← AJOUTÉ
         self.label_score = QLabel("Score: 0")
         self.label_avions = QLabel("Avions: 0")
         self.label_niveau = QLabel("Niveau: 1")
@@ -110,7 +113,7 @@ class FenetrePrincipale(QMainWindow):
         self.label_collisions = QLabel("Collisions évitées: 0")
         self.label_etat_simulation = QLabel("État: En attente")
 
-        for label in [self.label_score, self.label_avions, self.label_niveau,
+        for label in [self.label_temps, self.label_score, self.label_avions, self.label_niveau,  # ← MODIFIÉ
                       self.label_atterrissages, self.label_collisions, self.label_etat_simulation]:
             label.setFont(QFont("Arial", 10))
             stats_layout.addWidget(label)
@@ -181,13 +184,35 @@ class FenetrePrincipale(QMainWindow):
 
         # ALTITUDE
         alt_group = QGroupBox("Altitude")
-        alt_layout = QHBoxLayout()
+        alt_layout = QVBoxLayout()
+
+        # Boutons rapides altitude
+        alt_buttons_layout = QHBoxLayout()
         self.btn_monter = QPushButton("Monter +500m")
         self.btn_descendre = QPushButton("Descendre -500m")
         self.btn_monter.clicked.connect(lambda: self.changer_altitude(500))
         self.btn_descendre.clicked.connect(lambda: self.changer_altitude(-500))
-        alt_layout.addWidget(self.btn_monter)
-        alt_layout.addWidget(self.btn_descendre)
+        alt_buttons_layout.addWidget(self.btn_monter)
+        alt_buttons_layout.addWidget(self.btn_descendre)
+        alt_layout.addLayout(alt_buttons_layout)
+
+        # Saisie manuelle altitude
+        alt_manuel_layout = QHBoxLayout()
+        label_alt = QLabel("Altitude (m):")
+        self.spin_altitude = QSpinBox()
+        self.spin_altitude.setRange(1000, 10000)
+        self.spin_altitude.setSingleStep(500)
+        self.spin_altitude.setValue(3000)
+        self.spin_altitude.setKeyboardTracking(False)
+        self.spin_altitude.setFocusPolicy(Qt.StrongFocus)
+        self.btn_appliquer_altitude = QPushButton("Appliquer")
+        self.btn_appliquer_altitude.clicked.connect(self.appliquer_altitude)
+
+        alt_manuel_layout.addWidget(label_alt)
+        alt_manuel_layout.addWidget(self.spin_altitude)
+        alt_manuel_layout.addWidget(self.btn_appliquer_altitude)
+        alt_layout.addLayout(alt_manuel_layout)
+
         alt_group.setLayout(alt_layout)
         instructions_layout.addWidget(alt_group)
 
@@ -209,10 +234,12 @@ class FenetrePrincipale(QMainWindow):
         cap_layout.addLayout(cap_buttons_layout)
 
         cap_precis_layout = QHBoxLayout()
-        label_cap = QLabel("Cap:")
+        label_cap = QLabel("Cap (°):")
         self.spin_cap = QSpinBox()
         self.spin_cap.setRange(0, 359)
         self.spin_cap.setValue(0)
+        self.spin_cap.setKeyboardTracking(False)
+        self.spin_cap.setFocusPolicy(Qt.StrongFocus)
         self.btn_appliquer_cap = QPushButton("Appliquer")
         self.btn_appliquer_cap.clicked.connect(self.appliquer_cap)
 
@@ -226,13 +253,35 @@ class FenetrePrincipale(QMainWindow):
 
         # VITESSE
         vitesse_group = QGroupBox("Vitesse")
-        vitesse_layout = QHBoxLayout()
+        vitesse_layout = QVBoxLayout()
+
+        # Boutons rapides vitesse
+        vitesse_buttons_layout = QHBoxLayout()
         self.btn_accelerer = QPushButton("+50 km/h")
         self.btn_ralentir = QPushButton("-50 km/h")
         self.btn_accelerer.clicked.connect(lambda: self.changer_vitesse(50))
         self.btn_ralentir.clicked.connect(lambda: self.changer_vitesse(-50))
-        vitesse_layout.addWidget(self.btn_accelerer)
-        vitesse_layout.addWidget(self.btn_ralentir)
+        vitesse_buttons_layout.addWidget(self.btn_accelerer)
+        vitesse_buttons_layout.addWidget(self.btn_ralentir)
+        vitesse_layout.addLayout(vitesse_buttons_layout)
+
+        # Saisie manuelle vitesse
+        vitesse_manuel_layout = QHBoxLayout()
+        label_vitesse = QLabel("Vitesse (km/h):")
+        self.spin_vitesse = QSpinBox()
+        self.spin_vitesse.setRange(200, 800)
+        self.spin_vitesse.setSingleStep(50)
+        self.spin_vitesse.setValue(500)
+        self.spin_vitesse.setKeyboardTracking(False)
+        self.spin_vitesse.setFocusPolicy(Qt.StrongFocus)
+        self.btn_appliquer_vitesse = QPushButton("Appliquer")
+        self.btn_appliquer_vitesse.clicked.connect(self.appliquer_vitesse)
+
+        vitesse_manuel_layout.addWidget(label_vitesse)
+        vitesse_manuel_layout.addWidget(self.spin_vitesse)
+        vitesse_manuel_layout.addWidget(self.btn_appliquer_vitesse)
+        vitesse_layout.addLayout(vitesse_manuel_layout)
+
         vitesse_group.setLayout(vitesse_layout)
         instructions_layout.addWidget(vitesse_group)
 
@@ -321,7 +370,8 @@ class FenetrePrincipale(QMainWindow):
                        self.btn_cap_90, self.btn_cap_180, self.btn_cap_270,
                        self.spin_cap, self.btn_appliquer_cap, self.btn_accelerer,
                        self.btn_ralentir, self.btn_atterrir, self.btn_attente,
-                       self.btn_urgence]:
+                       self.btn_urgence, self.spin_altitude, self.btn_appliquer_altitude,
+                       self.spin_vitesse, self.btn_appliquer_vitesse]:
             widget.setEnabled(True)
         self.controles_actifs = True
 
@@ -331,14 +381,28 @@ class FenetrePrincipale(QMainWindow):
                        self.btn_cap_90, self.btn_cap_180, self.btn_cap_270,
                        self.spin_cap, self.btn_appliquer_cap, self.btn_accelerer,
                        self.btn_ralentir, self.btn_atterrir, self.btn_attente,
-                       self.btn_urgence]:
+                       self.btn_urgence, self.spin_altitude, self.btn_appliquer_altitude,
+                       self.spin_vitesse, self.btn_appliquer_vitesse]:
             widget.setEnabled(False)
         self.controles_actifs = False
+
+    def formater_temps(self, secondes):
+        """Formate le temps en MM:SS"""
+        minutes = int(secondes // 60)
+        secs = int(secondes % 60)
+        return f"{minutes:02d}:{secs:02d}"
 
     # MÉTHODES DE MISE À JOUR
     def mettre_a_jour_simulation(self):
         """Met à jour la simulation et l'interface"""
         self.simulation.mettre_a_jour(0.1)
+
+        # Afficher le temps écoulé depuis le début
+        if self.simulation.simulation_en_cours:
+            temps_ecoule = self.simulation.temps_ecoule - self.simulation.temps_debut
+            self.label_temps.setText(f"Temps: {self.formater_temps(temps_ecoule)}")
+        else:
+            self.label_temps.setText("Temps: 00:00")
 
         self.label_score.setText(f"Score: {self.simulation.score}")
         self.label_avions.setText(f"Avions: {len(self.simulation.avions)}")
@@ -364,12 +428,23 @@ class FenetrePrincipale(QMainWindow):
                 info += f"⏱️ En attente: {int(avion.temps_attente)}s"
 
             self.label_avion_selectionne.setText(info)
+
+            # Mettre à jour les spinbox SEULEMENT si l'utilisateur n'a PAS le focus dessus
+            # ET si l'avion sélectionné a changé
+            if self.avion_selectionne_precedent != avion:
+                self.spin_altitude.setValue(int(avion.position.altitude))
+                self.spin_vitesse.setValue(int(avion.vitesse))
+                self.spin_cap.setValue(int(avion.cap))
+                self.avion_selectionne_precedent = avion
+
         elif not self.controles_actifs:
             self.label_avion_selectionne.setText("Aucun avion sélectionné\n\n"
                                                  "La simulation n'est pas démarrée")
+            self.avion_selectionne_precedent = None
         else:
             self.label_avion_selectionne.setText("Aucun avion sélectionné\n\n"
                                                  "Cliquez sur un avion dans la liste ou sur le radar pour le sélectionner")
+            self.avion_selectionne_precedent = None
 
     def selectionner_avion_liste(self, item):
         if not self.controles_actifs:
@@ -377,9 +452,24 @@ class FenetrePrincipale(QMainWindow):
         identifiant = item.text().split('\n')[0]
         self.simulation.selectionner_avion(identifiant)
 
+        # Forcer la mise à jour des spinbox avec les valeurs de l'avion sélectionné
+        if self.simulation.avion_selectionne:
+            avion = self.simulation.avion_selectionne
+            self.spin_altitude.setValue(int(avion.position.altitude))
+            self.spin_vitesse.setValue(int(avion.vitesse))
+            self.spin_cap.setValue(int(avion.cap))
+            self.avion_selectionne_precedent = avion
+
     def changer_altitude(self, delta):
         if self.simulation.avion_selectionne and self.controles_actifs:
             self.simulation.donner_instruction_altitude(delta)
+
+    def appliquer_altitude(self):
+        """Applique l'altitude saisie manuellement"""
+        if self.simulation.avion_selectionne and self.controles_actifs:
+            nouvelle_altitude = self.spin_altitude.value()
+            self.simulation.avion_selectionne.changer_altitude(nouvelle_altitude)
+            print(f"✈️ {self.simulation.avion_selectionne.identifiant} - Nouvelle altitude cible: {nouvelle_altitude}m")
 
     def changer_cap(self, nouveau_cap):
         if self.simulation.avion_selectionne and self.controles_actifs:
@@ -387,11 +477,21 @@ class FenetrePrincipale(QMainWindow):
 
     def appliquer_cap(self):
         if self.simulation.avion_selectionne and self.controles_actifs:
-            self.simulation.donner_instruction_cap(self.spin_cap.value())
+            nouveau_cap = self.spin_cap.value()
+            self.simulation.donner_instruction_cap(nouveau_cap)
+            print(f"✈️ {self.simulation.avion_selectionne.identifiant} - Nouveau cap cible: {nouveau_cap}°")
 
     def changer_vitesse(self, delta):
         if self.simulation.avion_selectionne and self.controles_actifs:
             self.simulation.donner_instruction_vitesse(delta)
+
+    def appliquer_vitesse(self):
+        """Applique la vitesse saisie manuellement"""
+        if self.simulation.avion_selectionne and self.controles_actifs:
+            nouvelle_vitesse = self.spin_vitesse.value()
+            self.simulation.avion_selectionne.changer_vitesse(nouvelle_vitesse)
+            print(
+                f"✈️ {self.simulation.avion_selectionne.identifiant} - Nouvelle vitesse cible: {nouvelle_vitesse} km/h")
 
     def preparer_atterrissage(self):
         if self.simulation.avion_selectionne and self.controles_actifs:
