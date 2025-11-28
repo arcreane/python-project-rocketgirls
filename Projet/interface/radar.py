@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
+from PySide6.QtCore import Qt, QTimer, QPointF
+from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPolygonF
 import math
 
 
@@ -11,12 +11,12 @@ class RadarWidget(QWidget):
         self.setMinimumSize(600, 600)
 
         self.timer = QTimer()
-        self.timer.timeout.connect(self.update)
+        self.timer.timeout. connect(self.update)
         self.timer.start(50)
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter. Antialiasing)
 
         painter.fillRect(self.rect(), QColor(0, 0, 50))
 
@@ -54,27 +54,24 @@ class RadarWidget(QWidget):
         dx = math.sin(angle_rad) * taille
         dy = -math.cos(angle_rad) * taille
 
-        points = [
-            (x + dx, y + dy),
-            (x - dy, y + dx),
-            (x - dx, y - dy),
-            (x + dy, y - dx)
-        ]
+        # Créer un polygone correctement
+        polygon = QPolygonF([
+            QPointF(x + dx, y + dy),
+            QPointF(x - dy, y + dx),
+            QPointF(x - dx, y - dy),
+            QPointF(x + dy, y - dx)
+        ])
 
-        painter.drawPolygon(*[self.point_to_qpoint(p) for p in points])
+        painter.drawPolygon(polygon)
 
         if avion == self.simulation.avion_selectionne:
             painter.setPen(QPen(Qt.yellow, 2))
-            painter.drawEllipse(int(x - taille * 2), int(y - taille * 2),
+            painter. drawEllipse(int(x - taille * 2), int(y - taille * 2),
                                 int(taille * 4), int(taille * 4))
 
         if avion.position.altitude < 5000:
             painter.setPen(QPen(Qt.white))
             painter.drawText(int(x + taille * 2), int(y - taille * 2), avion.identifiant)
-
-    def point_to_qpoint(self, point):
-        from PySide6.QtCore import QPoint
-        return QPoint(int(point[0]), int(point[1]))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -99,5 +96,5 @@ class RadarWidget(QWidget):
                     avion_proche = avion
 
             if avion_proche:
-                self.simulation.selectionner_avion(avion_proche.identifiant)
+                self. simulation.selectionner_avion(avion_proche.identifiant)
                 self.update()
