@@ -32,8 +32,11 @@ class Avion:
         self.urgence = TypeUrgence.AUCUNE
         self.en_attente = False
         self.temps_attente = 0
-        self.temps_urgence = 0  # ← AJOUTÉ : temps écoulé depuis le début de l'urgence
-        self.points_urgence_perdus = 0  # ← AJOUTÉ : points déjà perdus pour cette urgence
+        self.temps_urgence = 0
+        self.points_urgence_perdus = 0
+        # Sauvegarder les valeurs avant mise en attente
+        self.vitesse_avant_attente = vitesse
+        self.altitude_avant_attente = position.altitude
 
     def mettre_a_jour(self, delta_temps: float):
         if self.etat == EtatAvion.ATTERRI:
@@ -52,47 +55,45 @@ class Avion:
             self.temps_urgence = 0
             self.points_urgence_perdus = 0
 
-        transition_vitesse = 0.1
-        transition_cap = 0.5
-        transition_altitude = 0.02
+        # Transitions plus rapides
+        transition_vitesse = 0.3  # ← MODIFIÉ : 0.1 → 0.3 (3x plus rapide)
+        transition_cap = 1.5  # ← MODIFIÉ : 0.5 → 1.5 (3x plus rapide)
+        transition_altitude = 0.06  # ← MODIFIÉ : 0.02 → 0.06 (3x plus rapide)
 
-        self.vitesse += (self.vitesse_cible - self.vitesse) * transition_vitesse
+        # Si en attente, ne pas bouger
+        if not self.en_attente:
+            self.vitesse += (self.vitesse_cible - self.vitesse) * transition_vitesse
 
-        # Calcul du changement de cap par le chemin le plus court
-        delta_cap = self.cap_cible - self.cap
+            # Calcul du changement de cap par le chemin le plus court
+            delta_cap = self.cap_cible - self.cap
 
-        # Normaliser la différence entre -180 et 180
-        while delta_cap > 180:
-            delta_cap -= 360
-        while delta_cap < -180:
-            delta_cap += 360
+            # Normaliser la différence entre -180 et 180
+            while delta_cap > 180:
+                delta_cap -= 360
+            while delta_cap < -180:
+                delta_cap += 360
 
-        # Appliquer la transition
-        self.cap += delta_cap * transition_cap
+            # Appliquer la transition
+            self.cap += delta_cap * transition_cap
 
-        # Normaliser le cap entre 0 et 360
-        self.cap = self.cap % 360
+            # Normaliser le cap entre 0 et 360
+            self.cap = self.cap % 360
 
-        self.position.altitude += (self.altitude_cible - self.position.altitude) * transition_altitude
+            self.position.altitude += (self.altitude_cible - self.position.altitude) * transition_altitude
 
-        vitesse_ms = self.vitesse * 1000 / 3600
-        cap_rad = math.radians(self.cap)
+            vitesse_ms = self.vitesse * 1000 / 3600
+            cap_rad = math.radians(self.cap)
 
-        # CORRECTION : Inverser dy pour que 0° = Nord (haut) et 180° = Sud (bas)
-        dx = vitesse_ms * math.sin(cap_rad) * delta_temps
-        dy = -vitesse_ms * math.cos(cap_rad) * delta_temps
+            dx = vitesse_ms * math.sin(cap_rad) * delta_temps
+            dy = -vitesse_ms * math.cos(cap_rad) * delta_temps
 
-        self.position.x += dx
-        self.position.y += dy
-
-        if self.en_attente:
+            self.position.x += dx
+            self.position.y += dy
+        else:
+            # En attente : arrêter complètement l'avion
             self.temps_attente += delta_temps
-            if self.temps_attente > 30:
-                self.en_attente = False
-                self.temps_attente = 0
 
     def changer_cap(self, nouveau_cap: float):
-        # Normaliser le nouveau cap entre 0 et 360
         self.cap_cible = nouveau_cap % 360
 
     def changer_altitude(self, nouvelle_altitude: float):
@@ -102,8 +103,27 @@ class Avion:
         self.vitesse_cible = max(200, min(800, nouvelle_vitesse))
 
     def activer_attente(self):
-        self.en_attente = True
-        self.temps_attente = 0
+        """Met l'avion en attente (arrêt complet)"""
+        if not self.en_attente:
+            # Sauvegarder les valeurs actuelles
+            self.vitesse_avant_attente = self.vitesse_cible
+            self.altitude_avant_attente = self.altitude_cible
+
+            # Arrêter l'avion
+            self.en_attente = True
+            self.temps_attente = 0
+            self.vitesse_cible = 0
+            print(f"✋ {self.identifiant} - Mise en attente (arrêt complet)")
+
+    def desactiver_attente(self):
+        """Désactive l'attente et restaure les valeurs"""
+        if self.en_attente:
+            self.en_attente = False
+            self.temps_attente = 0
+            # Restaurer la vitesse et l'altitude d'avant
+            self.vitesse_cible = self.vitesse_avant_attente
+            self.altitude_cible = self.altitude_avant_attente
+            print(f"▶️ {self.identifiant} - Reprise du vol")
 
     def preparer_atterrissage(self):
         self.etat = EtatAvion.EN_APPROCHE
@@ -121,15 +141,15 @@ class Avion:
 
     def get_couleur(self) -> str:
         if self.urgence != TypeUrgence.AUCUNE:
-            return "#FF4444"
+            return "#FF4444"  # Rouge pour urgence
         elif self.en_attente:
-            return "#FFAA00"
+            return "#FFAA00"  # Orange pour attente
         elif self.etat == EtatAvion.EN_APPROCHE:
-            return "#00FF00"
+            return "#00FF00"  # Vert pour approche
         else:
-            return "#4444FF"
+            return "#87CEEB"  # Bleu clair pour vol normal
 
     def get_info(self) -> str:
         urgence_str = f" • {self.urgence.value}" if self.urgence != TypeUrgence.AUCUNE else ""
-        attente_str = " ⏱️" if self.en_attente else ""
+        attente_str = " ⏱️ ARRÊTÉ" if self.en_attente else ""
         return f"{self.identifiant}{attente_str}\nAlt: {int(self.position.altitude)}m • V: {int(self.vitesse)}km/h • Cap: {int(self.cap)}° • Fuel: {int(self.carburant)}%{urgence_str}"
