@@ -412,9 +412,9 @@ class FenetrePrincipale(QMainWindow):
     def afficher_message_victoire(self):
         """Affiche un message de victoire"""
         msg = QMessageBox(self)
-        msg.setWindowTitle("🎉 FÉLICITATIONS !  🎉")
+        msg.setWindowTitle("FÉLICITATIONS !")
         msg.setText("VOUS AVEZ GAGNÉ !! !")
-        msg.setInformativeText(f"Vous avez terminé le niveau 5 avec succès!\n\n"
+        msg.setInformativeText(f"Vous avez terminé le jeu avec succès!\n\n"
                                f"Score final: {self.simulation.score} points\n"
                                f"Avions atterris: {self.simulation.avions_atterris}\n"
                                f"Temps total: {self.formater_temps(self.simulation.temps_ecoule - self.simulation.temps_debut)}")
@@ -442,7 +442,7 @@ class FenetrePrincipale(QMainWindow):
             self.afficher_message_victoire()
             self.btn_commencer.setEnabled(True)
             self.btn_arreter.setEnabled(False)
-            self.label_etat_simulation.setText("État: VICTOIRE !  🎉")
+            self.label_etat_simulation.setText("État: VICTOIRE !")
             self.label_etat_simulation.setStyleSheet("color: gold; font-weight: bold; font-size: 14px;")
             self.desactiver_controles()
             self.simulation.jeu_termine = False
@@ -476,7 +476,7 @@ class FenetrePrincipale(QMainWindow):
             if avion.urgence != avion.urgence.AUCUNE:
                 info += f"URGENCE: {avion.urgence.value}"
             if avion.en_attente:
-                info += f"⏱️ ARRÊTÉ (Temps: {int(avion.temps_attente)}s)"
+                info += f"ARRÊTÉ (Temps: {int(avion.temps_attente)}s)"
 
             self.label_avion_selectionne.setText(info)
 
@@ -500,8 +500,6 @@ class FenetrePrincipale(QMainWindow):
         if not self.controles_actifs:
             return
         identifiant = item.text().split('\n')[0]
-        # Enlever l'emoji ⏱️ s'il est présent
-        identifiant = identifiant.replace(" ⏱️ ARRÊTÉ", "").strip()
         self.simulation.selectionner_avion(identifiant)
 
         # Forcer la mise à jour des spinbox avec les valeurs de l'avion sélectionné
@@ -521,7 +519,7 @@ class FenetrePrincipale(QMainWindow):
         if self.simulation.avion_selectionne and self.controles_actifs:
             nouvelle_altitude = self.spin_altitude.value()
             self.simulation.avion_selectionne.changer_altitude(nouvelle_altitude)
-            print(f"✈️ {self.simulation.avion_selectionne.identifiant} - Nouvelle altitude cible: {nouvelle_altitude}m")
+            print(f"{self.simulation.avion_selectionne.identifiant} - Nouvelle altitude cible: {nouvelle_altitude}m")
 
     def changer_cap(self, nouveau_cap):
         if self.simulation.avion_selectionne and self.controles_actifs:
@@ -531,7 +529,7 @@ class FenetrePrincipale(QMainWindow):
         if self.simulation.avion_selectionne and self.controles_actifs:
             nouveau_cap = self.spin_cap.value()
             self.simulation.donner_instruction_cap(nouveau_cap)
-            print(f"✈️ {self.simulation.avion_selectionne.identifiant} - Nouveau cap cible: {nouveau_cap}°")
+            print(f"{self.simulation.avion_selectionne.identifiant} - Nouveau cap cible: {nouveau_cap}°")
 
     def changer_vitesse(self, delta):
         if self.simulation.avion_selectionne and self.controles_actifs:

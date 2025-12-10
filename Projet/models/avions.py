@@ -34,6 +34,7 @@ class Avion:
         self.temps_attente = 0
         self.temps_urgence = 0
         self.points_urgence_perdus = 0
+        self.points_attente_perdus = 0  # ← AJOUTÉ : nombre de tranches de 10s déjà décomptées
         # Sauvegarder les valeurs avant mise en attente
         self.vitesse_avant_attente = vitesse
         self.altitude_avant_attente = position.altitude
@@ -56,9 +57,9 @@ class Avion:
             self.points_urgence_perdus = 0
 
         # Transitions plus rapides
-        transition_vitesse = 0.3  # ← MODIFIÉ : 0.1 → 0.3 (3x plus rapide)
-        transition_cap = 1.5  # ← MODIFIÉ : 0.5 → 1.5 (3x plus rapide)
-        transition_altitude = 0.06  # ← MODIFIÉ : 0.02 → 0.06 (3x plus rapide)
+        transition_vitesse = 0.3
+        transition_cap = 1.5
+        transition_altitude = 0.06
 
         # Si en attente, ne pas bouger
         if not self.en_attente:
@@ -112,18 +113,21 @@ class Avion:
             # Arrêter l'avion
             self.en_attente = True
             self.temps_attente = 0
+            self.points_attente_perdus = 0
             self.vitesse_cible = 0
-            print(f"✋ {self.identifiant} - Mise en attente (arrêt complet)")
+            print(f"{self.identifiant} - Mise en attente (arrêt complet)")
+
 
     def desactiver_attente(self):
         """Désactive l'attente et restaure les valeurs"""
         if self.en_attente:
             self.en_attente = False
+            temps_total = self.temps_attente
             self.temps_attente = 0
+            self.points_attente_perdus = 0  # ← AJOUTÉ : réinitialiser le compteur
             # Restaurer la vitesse et l'altitude d'avant
             self.vitesse_cible = self.vitesse_avant_attente
             self.altitude_cible = self.altitude_avant_attente
-            print(f"▶️ {self.identifiant} - Reprise du vol")
 
     def preparer_atterrissage(self):
         self.etat = EtatAvion.EN_APPROCHE
@@ -151,5 +155,5 @@ class Avion:
 
     def get_info(self) -> str:
         urgence_str = f" • {self.urgence.value}" if self.urgence != TypeUrgence.AUCUNE else ""
-        attente_str = " ⏱️ ARRÊTÉ" if self.en_attente else ""
+        attente_str = "ARRÊTÉ" if self.en_attente else ""
         return f"{self.identifiant}{attente_str}\nAlt: {int(self.position.altitude)}m • V: {int(self.vitesse)}km/h • Cap: {int(self.cap)}° • Fuel: {int(self.carburant)}%{urgence_str}"
