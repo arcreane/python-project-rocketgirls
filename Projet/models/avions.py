@@ -1,3 +1,4 @@
+'import math
 import random
 import math
 from enum import Enum
